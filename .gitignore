@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+service-account*.json
+
+# Eval artifacts — keep reports, ignore heavy intermediates
+/data/raw/
+/data/cache/
+*.tfevents.*
+wandb/
+
+# Model weights — pulled from R2/HF at run time
+models/
+checkpoints/
+*.tflite
+*.litert
+*.gguf
+*.safetensors
+*.bin
+*.onnx
+*.pt
+*.ckpt
