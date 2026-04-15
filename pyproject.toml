@@ -1,0 +1,23 @@
+[project]
+name = "resibo-eval"
+version = "0.1.0"
+description = "Evaluation harness and PH-Hard eval set for Resibo (Gemma 4 on-device fact-check Note generator)."
+readme = "README.md"
+authors = [
+    { name = "John Patrick Laurel", email = "prod.patricklaurel@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.2",
+    "wandb>=0.26.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
