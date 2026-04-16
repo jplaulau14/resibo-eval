@@ -49,8 +49,9 @@ def load_model(model_path: str = None):
     _tokenizer = AutoTokenizer.from_pretrained(model_path)
     _model = AutoModelForCausalLM.from_pretrained(
         model_path,
-        dtype=torch.float16,
-        device_map="auto",
+        dtype=torch.float32,
+        device_map="cpu",
+        low_cpu_mem_usage=True,
     )
     elapsed = time.time() - start
     print(f"Model loaded in {elapsed:.1f}s")
@@ -68,7 +69,7 @@ def call_gemma(prompt: str, max_new_tokens: int = 512) -> str:
         messages, return_tensors="pt", return_dict=True, add_generation_prompt=True
     )
     input_len = inputs["input_ids"].shape[-1]
-    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+    inputs = {k: v.to("cpu") for k, v in inputs.items()}
 
     with torch.no_grad():
         outputs = model.generate(
