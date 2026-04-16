@@ -58,7 +58,11 @@ def scrape_verafiles(max_pages: int = 10) -> list[FactCheckClaim]:
 
     # Crawl listing pages
     for page in range(1, max_pages + 1):
-        url = f"https://verafiles.org/specials/fact-check?page={page}"
+        url = (
+            "https://verafiles.org/fact-check"
+            if page == 1
+            else f"https://verafiles.org/fact-check?page={page}"
+        )
         print(f"  [verafiles] listing page {page}: {url}")
         try:
             resp = client.get(url)
@@ -72,7 +76,7 @@ def scrape_verafiles(max_pages: int = 10) -> list[FactCheckClaim]:
             new_urls = []
             for link in links:
                 href = link.attributes.get("href", "")
-                if "/articles/" in href and "fact-check" in href.lower():
+                if "/articles/" in href:
                     full = (
                         href
                         if href.startswith("http")
@@ -80,19 +84,6 @@ def scrape_verafiles(max_pages: int = 10) -> list[FactCheckClaim]:
                     )
                     if full not in article_urls and full not in new_urls:
                         new_urls.append(full)
-            if not new_urls:
-                # Try broader match
-                links = tree.css("a[href*='/articles/']")
-                for link in links:
-                    href = link.attributes.get("href", "")
-                    if "/articles/" in href:
-                        full = (
-                            href
-                            if href.startswith("http")
-                            else f"https://verafiles.org{href}"
-                        )
-                        if full not in article_urls and full not in new_urls:
-                            new_urls.append(full)
             article_urls.extend(new_urls)
             print(
                 f"  [verafiles] found {len(new_urls)} articles (total: {len(article_urls)})"
