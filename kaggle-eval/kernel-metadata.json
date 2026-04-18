@@ -1,0 +1,14 @@
+{
+  "id": "patslaurel/resibo-eval-gemma4",
+  "title": "resibo-eval-gemma4",
+  "code_file": "resibo-eval-notebook.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": true,
+  "competition_sources": [],
+  "dataset_sources": [],
+  "model_sources": ["google/gemma-4/transformers/gemma-4-e2b-it/1"],
+  "keywords": ["gemma-4", "fact-check", "evaluation", "filipino"]
+}
