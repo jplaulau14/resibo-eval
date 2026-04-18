@@ -118,6 +118,19 @@ def score_verdict(note: str, expected: str) -> dict:
     }
 
 
+def confusion_matrix(results: list[dict]) -> dict[str, dict[str, int]]:
+    """Build expected → detected counts for non-error results."""
+    matrix: dict[str, dict[str, int]] = {}
+    for r in results:
+        if "error" in r:
+            continue
+        expected = r.get("expected_verdict", "unknown")
+        detected = r.get("detected_verdict", "unknown")
+        matrix.setdefault(expected, {})
+        matrix[expected][detected] = matrix[expected].get(detected, 0) + 1
+    return matrix
+
+
 def slice_accuracy(results: list[dict], key: str) -> dict[str, dict]:
     """Group results by a field (e.g., 'language', 'category') and compute per-slice accuracy."""
     buckets: dict[str, list[dict]] = {}
@@ -224,6 +237,7 @@ def run_experiment(
     by_language = slice_accuracy(results, "language")
     by_category = slice_accuracy(results, "category")
     by_verdict = slice_accuracy(results, "expected_verdict")
+    confusion = confusion_matrix(results)
 
     summary = {
         "experiment": name,
@@ -238,6 +252,7 @@ def run_experiment(
         "by_language": by_language,
         "by_category": by_category,
         "by_expected_verdict": by_verdict,
+        "confusion_matrix": confusion,
     }
 
     print(f"\n{'─'*40}")
@@ -259,6 +274,19 @@ def run_experiment(
     _print_slices("language", by_language)
     _print_slices("category", by_category)
     _print_slices("expected verdict", by_verdict)
+
+    if confusion:
+        detected_labels = sorted({d for row in confusion.values() for d in row})
+        col_w = max(10, max(len(lbl) for lbl in detected_labels))
+        print("\n  Confusion matrix (rows=expected, cols=detected):")
+        header = " " * 16 + "".join(f"{lbl:>{col_w + 2}}" for lbl in detected_labels)
+        print(header)
+        for expected in sorted(confusion):
+            row = confusion[expected]
+            cells = "".join(
+                f"{row.get(lbl, 0):>{col_w + 2}}" for lbl in detected_labels
+            )
+            print(f"    {expected:<14}{cells}")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
