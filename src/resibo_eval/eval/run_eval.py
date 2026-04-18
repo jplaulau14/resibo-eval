@@ -118,6 +118,27 @@ def score_verdict(note: str, expected: str) -> dict:
     }
 
 
+def slice_accuracy(results: list[dict], key: str) -> dict[str, dict]:
+    """Group results by a field (e.g., 'language', 'category') and compute per-slice accuracy."""
+    buckets: dict[str, list[dict]] = {}
+    for r in results:
+        if "error" in r:
+            continue
+        value = r.get(key, "unknown") or "unknown"
+        buckets.setdefault(value, []).append(r)
+
+    slices = {}
+    for value, rs in buckets.items():
+        correct = sum(1 for r in rs if r.get("correct"))
+        total = len(rs)
+        slices[value] = {
+            "correct": correct,
+            "total": total,
+            "accuracy": round(correct / total, 3) if total else 0.0,
+        }
+    return slices
+
+
 def run_single_claim(
     claim_text: str, system_prompt: str, use_evidence: bool = True
 ) -> dict:
@@ -200,6 +221,10 @@ def run_experiment(
     accuracy = correct / total if total > 0 else 0
     sourced = sum(1 for r in results if r.get("has_sources"))
 
+    by_language = slice_accuracy(results, "language")
+    by_category = slice_accuracy(results, "category")
+    by_verdict = slice_accuracy(results, "expected_verdict")
+
     summary = {
         "experiment": name,
         "use_evidence": use_evidence,
@@ -210,6 +235,9 @@ def run_experiment(
         "sourced_notes": sourced,
         "sourced_rate": round(sourced / total, 3) if total > 0 else 0,
         "errors": len(claims) - total,
+        "by_language": by_language,
+        "by_category": by_category,
+        "by_expected_verdict": by_verdict,
     }
 
     print(f"\n{'─'*40}")
@@ -219,6 +247,18 @@ def run_experiment(
         if total
         else ""
     )
+
+    def _print_slices(title: str, slices: dict[str, dict]) -> None:
+        if not slices:
+            return
+        print(f"\n  By {title}:")
+        for k in sorted(slices, key=lambda x: -slices[x]["total"]):
+            s = slices[k]
+            print(f"    {k:<16} {s['accuracy']:.1%}  ({s['correct']}/{s['total']})")
+
+    _print_slices("language", by_language)
+    _print_slices("category", by_category)
+    _print_slices("expected verdict", by_verdict)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
