@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import json
+import random
 import time
 from pathlib import Path
 
@@ -116,6 +117,24 @@ def score_verdict(note: str, expected: str) -> dict:
         "correct": correct,
         "has_sources": has_sources,
     }
+
+
+def bootstrap_ci(
+    correct_flags: list[int],
+    n_iter: int = 1000,
+    ci: float = 0.95,
+    seed: int = 42,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for a binary metric (accuracy, abstention rate)."""
+    if not correct_flags:
+        return (0.0, 0.0)
+    rng = random.Random(seed)
+    n = len(correct_flags)
+    means = sorted(sum(rng.choices(correct_flags, k=n)) / n for _ in range(n_iter))
+    alpha = (1 - ci) / 2
+    lo = means[int(alpha * n_iter)]
+    hi = means[min(n_iter - 1, int((1 - alpha) * n_iter))]
+    return (lo, hi)
 
 
 def confusion_matrix(results: list[dict]) -> dict[str, dict[str, int]]:
@@ -229,9 +248,12 @@ def run_experiment(
             results.append({**case, "error": str(e)})
         time.sleep(0.5)
 
-    correct = sum(1 for r in results if r.get("correct"))
-    total = len([r for r in results if "error" not in r])
+    scored = [r for r in results if "error" not in r]
+    correct_flags = [1 if r.get("correct") else 0 for r in scored]
+    correct = sum(correct_flags)
+    total = len(scored)
     accuracy = correct / total if total > 0 else 0
+    acc_ci_lo, acc_ci_hi = bootstrap_ci(correct_flags)
     sourced = sum(1 for r in results if r.get("has_sources"))
 
     by_language = slice_accuracy(results, "language")
@@ -246,6 +268,7 @@ def run_experiment(
         "evaluated": total,
         "correct": correct,
         "accuracy": round(accuracy, 3),
+        "accuracy_ci_95": [round(acc_ci_lo, 3), round(acc_ci_hi, 3)],
         "sourced_notes": sourced,
         "sourced_rate": round(sourced / total, 3) if total > 0 else 0,
         "errors": len(claims) - total,
@@ -256,7 +279,10 @@ def run_experiment(
     }
 
     print(f"\n{'─'*40}")
-    print(f"Results: {correct}/{total} correct ({accuracy:.1%})")
+    print(
+        f"Results: {correct}/{total} correct ({accuracy:.1%}) "
+        f"[95% CI {acc_ci_lo:.1%}–{acc_ci_hi:.1%}]"
+    )
     print(
         f"Source citation rate: {sourced}/{total} ({sourced/total:.1%})"
         if total
